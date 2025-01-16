@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic Form Builder</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f1f1f1;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      width: 80%;
+      margin: 0 auto;
+      background-color: white;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+
+    input[type="text"], input[type="email"], input[type="number"], textarea, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      margin-bottom: 10px;
+    }
+
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+
+    table, th, td {
+      border: 1px solid black;
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: left;
+    }
+
+    .form-preview {
+      margin-top: 30px;
+    }
+
+    .radio-group {
+      margin-left: 20px;
+    }
+
+    .code-container {
+      background-color: #333;
+      color: white;
+      padding: 15px;
+      margin-top: 20px;
+      white-space: pre-wrap; /* Allows code to wrap */
+      word-wrap: break-word;
+      border-radius: 5px;
+      font-family: "Courier New", Courier, monospace;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Dynamic Form Builder</h1>
+
+    <form id="inputSpecForm" onsubmit="return false;">
+      <label for="label">Input Label:</label>
+      <input type="text" id="label" name="label" required><br>
+
+      <label for="inputName">Input Name:</label>
+      <input type="text" id="inputName" name="inputName" required><br>
+
+      <label for="inputType">Input Type:</label>
+      <select id="inputType" name="inputType" required>
+        <option value="text">Text</option>
+        <option value="email">Email</option>
+        <option value="number">Number</option>
+        <option value="radio">Radio</option>
+        <option value="dropdown">Dropdown</option>
+      </select><br>
+
+      <label for="required">Required Field:</label>
+      <input type="checkbox" id="required" name="required"><br>
+
+      <label for="options">Radio Options (comma-separated) or Dropdown Options:</label>
+      <input type="text" id="options" name="options" placeholder="e.g. Option 1, Option 2" disabled><br>
+
+      <button type="button" id="addFieldButton">Add Field</button>
+    </form>
+
+    <h2>Field Specifications</h2>
+    <table id="fieldsTable">
+      <thead>
+        <tr>
+          <th>Label</th>
+          <th>Type</th>
+          <th>Required</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+
+    <button id="createFormButton">Generate Form HTML</button>
+
+    <h2>Generated HTML Code</h2>
+    <div class="form-preview">
+      <div class="code-container" id="formHtmlCode"></div>
+    </div>
+  </div>
+
+  <script>
+    let fields = [];
+
+    document.getElementById('inputType').addEventListener('change', function() {
+      const inputType = this.value;
+      const optionsInput = document.getElementById('options');
+      
+      if (inputType === 'radio' || inputType === 'dropdown') {
+        optionsInput.disabled = false;
+      } else {
+        optionsInput.disabled = true;
+      }
+    });
+
+    document.getElementById('addFieldButton').addEventListener('click', function() {
+      const label = document.getElementById('label').value;
+      const inputName = document.getElementById('inputName').value;
+      const inputType = document.getElementById('inputType').value;
+      const required = document.getElementById('required').checked;
+      const options = document.getElementById('options').value;
+
+      if (!label || !inputName || !inputType) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      if ((inputType === 'radio' || inputType === 'dropdown') && !options) {
+        alert("Please provide options for the radio or dropdown field.");
+        return;
+      }
+
+      fields.push({
+        label: label,
+        inputName: inputName,
+        inputType: inputType,
+        required: required,
+        options: options ? options.split(',').map(option => option.trim()) : [] // Parse options for radio and dropdown fields
+      });
+
+      const table = document.getElementById('fieldsTable').getElementsByTagName('tbody')[0];
+      const newRow = table.insertRow();
+
+      const cell1 = newRow.insertCell(0);
+      const cell2 = newRow.insertCell(1);
+      const cell3 = newRow.insertCell(2);
+
+      cell1.textContent = label;
+      cell2.textContent = inputType;
+      cell3.textContent = required ? "Yes" : "No";
+
+      document.getElementById('inputSpecForm').reset();
+      document.getElementById('options').disabled = true;
+    });
+
+    document.getElementById('createFormButton').addEventListener('click', function() {
+      const formHtmlCodeContainer = document.getElementById('formHtmlCode');
+      formHtmlCodeContainer.innerHTML = '';  // Clear previous content
+
+      let formHtml = '<form>';
+
+      fields.forEach(field => {
+        // Generate the label
+        formHtml += `<label>${field.label}</label><br>`;
+
+        let inputHtml;
+
+        if (field.inputType === 'radio' || field.inputType === 'dropdown') {
+          field.options.forEach(option => {
+            if (field.inputType === 'radio') {
+              inputHtml = `<label><input type="radio" name="${field.inputName}" value="${option}" ${field.required ? 'required' : ''}> ${option}</label><br>`;
+            } else if (field.inputType === 'dropdown') {
+              inputHtml = `<label>${field.label}</label><select name="${field.inputName}" ${field.required ? 'required' : ''}>`;
+              inputHtml += field.options.map(option => `<option value="${option}">${option}</option>`).join('');
+              inputHtml += '</select><br>';
+            }
+            formHtml += inputHtml;
+          });
+        } else if (field.inputType === 'textarea') {
+          inputHtml = `<textarea name="${field.inputName}" ${field.required ? 'required' : ''}></textarea><br>`;
+          formHtml += inputHtml;
+        } else {
+          inputHtml = `<input type="${field.inputType}" name="${field.inputName}" ${field.required ? 'required' : ''}><br>`;
+          formHtml += inputHtml;
+        }
+      });
+
+      formHtml += '</form>';
+
+      formHtmlCodeContainer.textContent = formHtml;  // Display generated HTML code
+    });
+  </script>
+
+</body>
+</html>
